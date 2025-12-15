@@ -3,25 +3,11 @@ import { GeminiPlanetInfo } from "../types";
 
 export const fetchPlanetDetails = async (planetName: string): Promise<GeminiPlanetInfo | null> => {
   try {
-    const apiKey = process.env.API_KEY;
-
-    // Se a chave não estiver presente, retorna dados de fallback imediatamente para evitar erro fatal do SDK
-    if (!apiKey) {
-      console.warn("API Key is missing. Using offline fallback data.");
-      return {
-        funFacts: [
-          "A chave da API Gemini não foi configurada.",
-          "O modo offline está ativo.",
-          "Configure a variável de ambiente API_KEY na Vercel para ver dados gerados por IA."
-        ],
-        composition: "Modo Offline",
-        temperature: "Modo Offline",
-        orbitPeriod: "Modo Offline"
-      };
-    }
-
-    // Inicializa o SDK apenas quando necessário e se a chave existir
-    const ai = new GoogleGenAI({ apiKey: apiKey });
+    // Inicializa o SDK diretamente com a chave do ambiente.
+    // Assume-se que process.env.API_KEY está configurado corretamente.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    // Utilizando o modelo flash para respostas rápidas e eficientes
     const model = 'gemini-2.5-flash';
     const prompt = `Forneça informações astronômicas interessantes e dados científicos sobre o planeta ${planetName}. A resposta deve estar em português.`;
 
@@ -63,11 +49,12 @@ export const fetchPlanetDetails = async (planetName: string): Promise<GeminiPlan
     return null;
   } catch (error) {
     console.error("Error fetching planet details:", error);
+    // Retorna um objeto vazio/erro genérico caso a API falhe por outros motivos (ex: cota, rede)
     return {
-      funFacts: ["Não foi possível carregar os dados da IA no momento.", "Tente novamente mais tarde.", "Verifique sua conexão."],
-      composition: "Desconhecida",
-      temperature: "Desconhecida",
-      orbitPeriod: "Desconhecido"
+      funFacts: ["Não foi possível conectar à base de dados estelar.", "Verifique a conexão.", "Tente novamente em instantes."],
+      composition: "Dados indisponíveis",
+      temperature: "--",
+      orbitPeriod: "--"
     };
   }
 };
