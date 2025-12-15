@@ -1,15 +1,23 @@
 import React, { useState } from 'react';
 import { SolarSystem } from './components/SolarSystem';
 import { InfoPanel } from './components/InfoPanel';
+import { SettingsModal } from './components/SettingsModal';
 import { PLANETS } from './constants';
-import { Play, Pause, Search } from 'lucide-react';
+import { Play, Pause, Search, Settings } from 'lucide-react';
 
 export default function App() {
   const [selectedPlanetId, setSelectedPlanetId] = useState<string | null>(null);
   const [timeScale, setTimeScale] = useState(1);
   const [paused, setPaused] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const selectedPlanet = PLANETS.find(p => p.id === selectedPlanetId) || null;
+
+  const handleKeySaved = () => {
+    // Fecha o painel atual para forçar o usuário a clicar novamente, garantindo reload dos dados
+    setSelectedPlanetId(null);
+    alert("Chave salva! Selecione um planeta para ver os novos dados.");
+  };
 
   return (
     <div className="w-full h-screen bg-black relative overflow-hidden font-sans text-white">
@@ -20,6 +28,17 @@ export default function App() {
           COSMOVIEW 3D
         </h1>
         <p className="text-blue-200/60 text-sm mt-1">Explorador Interativo do Sistema Solar</p>
+      </div>
+
+      {/* Settings Button (Top Right) */}
+      <div className="absolute top-6 right-6 z-20">
+        <button 
+          onClick={() => setIsSettingsOpen(true)}
+          className="p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all text-gray-300 hover:text-white backdrop-blur-md"
+          title="Configurar API Key"
+        >
+          <Settings size={20} />
+        </button>
       </div>
 
       {/* 3D Scene */}
@@ -87,6 +106,14 @@ export default function App() {
       <InfoPanel 
         planet={selectedPlanet} 
         onClose={() => setSelectedPlanetId(null)} 
+        onOpenSettings={() => setIsSettingsOpen(true)}
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+        onKeySaved={handleKeySaved}
       />
       
     </div>

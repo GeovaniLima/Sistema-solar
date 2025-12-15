@@ -1,18 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { PlanetData, GeminiPlanetInfo } from '../types';
 import { fetchPlanetDetails } from '../services/geminiService';
-import { X, Loader2, Thermometer, Clock, Info, Moon } from 'lucide-react';
+import { X, Loader2, Thermometer, Clock, Info, Moon, RefreshCw, Settings } from 'lucide-react';
 
 interface InfoPanelProps {
   planet: PlanetData | null;
   onClose: () => void;
+  onOpenSettings: () => void;
 }
 
-export const InfoPanel: React.FC<InfoPanelProps> = ({ planet, onClose }) => {
+export const InfoPanel: React.FC<InfoPanelProps> = ({ planet, onClose, onOpenSettings }) => {
   const [info, setInfo] = useState<GeminiPlanetInfo | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     if (planet) {
       setLoading(true);
       setInfo(null);
@@ -23,7 +24,14 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ planet, onClose }) => {
     }
   }, [planet]);
 
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   if (!planet) return null;
+
+  const isErrorState = info?.composition === "Sistema Offline" || info?.composition === "Modo Offline" || info?.funFacts[0]?.includes("Status: Falha") || info?.funFacts[0]?.includes("Status: Offline");
+  const isKeyError = info?.funFacts[1]?.includes("Chave") || info?.funFacts[1]?.includes("API Key");
 
   return (
     <div className="fixed right-0 top-0 bottom-0 w-full sm:w-96 bg-black/90 backdrop-blur-md border-l border-white/10 text-white p-6 z-50 transform transition-transform duration-300 overflow-y-auto shadow-2xl">
@@ -73,15 +81,38 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ planet, onClose }) => {
         ) : info ? (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
-                <h3 className="flex items-center gap-2 text-blue-300 font-semibold mb-3">
+            {/* Se houver erro, mostra opções de ação */}
+            {isErrorState && (
+                <div className="space-y-2 mb-4">
+                  {isKeyError ? (
+                     <button 
+                        onClick={onOpenSettings}
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-lg shadow-blue-500/20"
+                    >
+                        <Settings size={16} />
+                        Configurar Chave API
+                    </button>
+                  ) : (
+                    <button 
+                        onClick={loadData}
+                        className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/50 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                    >
+                        <RefreshCw size={16} />
+                        Tentar Conectar Novamente
+                    </button>
+                  )}
+                </div>
+            )}
+
+            <div className={`${isErrorState ? 'bg-red-900/20 border-red-500/30' : 'bg-blue-500/10 border-blue-500/20'} border rounded-xl p-4 transition-colors`}>
+                <h3 className={`flex items-center gap-2 font-semibold mb-3 ${isErrorState ? 'text-red-300' : 'text-blue-300'}`}>
                     <Info size={18} />
-                    Curiosidades
+                    {isErrorState ? 'Status do Sistema' : 'Curiosidades'}
                 </h3>
                 <ul className="space-y-2">
                     {info.funFacts.map((fact, i) => (
                     <li key={i} className="flex gap-2 text-sm text-gray-200">
-                        <span className="text-blue-500">•</span>
+                        <span className={isErrorState ? "text-red-500" : "text-blue-500"}>•</span>
                         {fact}
                     </li>
                     ))}
