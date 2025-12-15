@@ -1,10 +1,27 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GeminiPlanetInfo } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const fetchPlanetDetails = async (planetName: string): Promise<GeminiPlanetInfo | null> => {
   try {
+    const apiKey = process.env.API_KEY;
+
+    // Se a chave não estiver presente, retorna dados de fallback imediatamente para evitar erro fatal do SDK
+    if (!apiKey) {
+      console.warn("API Key is missing. Using offline fallback data.");
+      return {
+        funFacts: [
+          "A chave da API Gemini não foi configurada.",
+          "O modo offline está ativo.",
+          "Configure a variável de ambiente API_KEY na Vercel para ver dados gerados por IA."
+        ],
+        composition: "Modo Offline",
+        temperature: "Modo Offline",
+        orbitPeriod: "Modo Offline"
+      };
+    }
+
+    // Inicializa o SDK apenas quando necessário e se a chave existir
+    const ai = new GoogleGenAI({ apiKey: apiKey });
     const model = 'gemini-2.5-flash';
     const prompt = `Forneça informações astronômicas interessantes e dados científicos sobre o planeta ${planetName}. A resposta deve estar em português.`;
 
