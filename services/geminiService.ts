@@ -3,11 +3,11 @@ import { GeminiPlanetInfo } from "../types";
 
 export const fetchPlanetDetails = async (planetName: string): Promise<GeminiPlanetInfo | null> => {
   try {
-    // Tenta obter a chave do ambiente global (definida no index.html) ou process.env
-    const apiKey = (window as any).GEMINI_API_KEY || process.env.API_KEY;
+    // API key must be obtained exclusively from process.env.API_KEY
+    const apiKey = process.env.API_KEY;
 
     if (!apiKey) {
-      console.error("API Key not found");
+      console.error("API Key not found in environment variables");
       throw new Error("API Key not configured");
     }
 
@@ -55,10 +55,14 @@ export const fetchPlanetDetails = async (planetName: string): Promise<GeminiPlan
     return null;
   } catch (error) {
     console.error("Error fetching planet details:", error);
-    // Retorna um objeto vazio/erro genérico caso a API falhe por outros motivos (ex: cota, rede)
+    // Retorna mensagem de erro amigável no formato esperado pela UI
     return {
-      funFacts: ["Não foi possível conectar à base de dados estelar.", "Verifique a conexão.", "Tente novamente em instantes."],
-      composition: "Dados indisponíveis",
+      funFacts: [
+        "Erro ao conectar com a base de dados estelar.",
+        "Verifique a configuração da chave de API.",
+        "O sistema está operando com dados limitados."
+      ],
+      composition: "Desconhecida",
       temperature: "--",
       orbitPeriod: "--"
     };
