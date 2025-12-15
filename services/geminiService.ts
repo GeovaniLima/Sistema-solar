@@ -3,9 +3,15 @@ import { GeminiPlanetInfo } from "../types";
 
 export const fetchPlanetDetails = async (planetName: string): Promise<GeminiPlanetInfo | null> => {
   try {
-    // Inicializa o SDK diretamente com a chave do ambiente.
-    // Assume-se que process.env.API_KEY está configurado corretamente.
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // Tenta obter a chave do ambiente global (definida no index.html) ou process.env
+    const apiKey = (window as any).GEMINI_API_KEY || process.env.API_KEY;
+
+    if (!apiKey) {
+      console.error("API Key not found");
+      throw new Error("API Key not configured");
+    }
+
+    const ai = new GoogleGenAI({ apiKey: apiKey });
     
     // Utilizando o modelo flash para respostas rápidas e eficientes
     const model = 'gemini-2.5-flash';
