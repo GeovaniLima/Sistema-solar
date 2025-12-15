@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { PlanetData, GeminiPlanetInfo } from '../types';
 import { fetchPlanetDetails } from '../services/geminiService';
-import { X, Loader2, Thermometer, Clock, Info } from 'lucide-react';
+import { X, Loader2, Thermometer, Clock, Info, Moon } from 'lucide-react';
 
 interface InfoPanelProps {
   planet: PlanetData | null;
@@ -47,13 +47,21 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ planet, onClose }) => {
         <p className="text-gray-400 mb-6 italic">{planet.description}</p>
 
         <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+            <div className="bg-white/5 p-4 rounded-xl border border-white/5 hover:bg-white/10 transition-colors">
                 <div className="text-gray-400 text-xs uppercase mb-1">Distância do Sol</div>
                 <div className="text-xl font-bold">~{planet.distance * 5}M km</div>
             </div>
-            <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                <div className="text-gray-400 text-xs uppercase mb-1">Luas</div>
-                <div className="text-xl font-bold">{planet.moons ?? 0}</div>
+            <div className="bg-white/5 p-4 rounded-xl border border-white/5 hover:bg-white/10 transition-colors">
+                <div className="flex items-center gap-2 text-gray-400 text-xs uppercase mb-1">
+                    <Moon size={14} className={planet.moons && planet.moons > 0 ? "text-yellow-200" : "text-gray-600"} />
+                    <span>Luas</span>
+                </div>
+                <div className="text-xl font-bold flex items-baseline gap-1">
+                    {planet.moons ?? 0}
+                    {planet.moons && planet.moons > 0 && (
+                        <span className="text-xs font-normal text-gray-500">satélites</span>
+                    )}
+                </div>
             </div>
         </div>
 

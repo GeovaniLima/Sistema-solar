@@ -1,70 +1,82 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { InstancedMesh, Object3D, Vector3, MathUtils } from 'three';
+import { InstancedMesh, Object3D, Vector3, MathUtils, Color } from 'three';
 
 export const MeteorShower: React.FC = () => {
-  const count = 60; // Número de meteoros ativos simultaneamente
+  // Reduzido ainda mais para ser apenas um detalhe de fundo
+  const count = 12; 
   const meshRef = useRef<InstancedMesh>(null);
   const dummy = useMemo(() => new Object3D(), []);
 
-  // Inicializa o estado de cada meteoro (posição, velocidade, tempo de vida)
+  // Inicializa o estado de cada meteoro
   const meteors = useMemo(() => {
     return new Array(count).fill(0).map(() => {
       const position = new Vector3();
       const velocity = new Vector3();
+      // Muito mais finos (0.1 a 0.3)
+      const size = MathUtils.randFloat(0.1, 0.3); 
+      // Variação de brilho
+      const brightness = MathUtils.randFloat(0.4, 1.0);
       
       const reset = () => {
-        // Nasce em uma posição aleatória distante (esfera entre 250 e 400 unidades)
+        // Distância segura
         const theta = Math.random() * Math.PI * 2;
         const phi = Math.acos((Math.random() * 2) - 1);
-        const radius = MathUtils.randFloat(250, 400);
+        const radius = MathUtils.randFloat(350, 500);
         
         position.setFromSphericalCoords(radius, phi, theta);
         
-        // Define uma direção aleatória "cortando" o espaço
+        // Direção
         const target = new Vector3(
-          MathUtils.randFloatSpread(200),
-          MathUtils.randFloatSpread(200),
-          MathUtils.randFloatSpread(200)
+          MathUtils.randFloatSpread(100),
+          MathUtils.randFloatSpread(100),
+          MathUtils.randFloatSpread(100)
         );
         
-        // Velocidade baseada na direção, normalizada e multiplicada por um fator de velocidade
-        velocity.copy(target).sub(position).normalize().multiplyScalar(MathUtils.randFloat(1.5, 4));
+        // Alta velocidade para parecer um risco rápido
+        velocity.copy(target).sub(position).normalize().multiplyScalar(MathUtils.randFloat(6, 12));
       };
 
-      reset(); // Configuração inicial
+      reset();
 
       return {
         position,
         velocity,
+        size,
+        brightness,
         reset
       };
     });
   }, []);
 
+  useEffect(() => {
+    if (meshRef.current) {
+        // Cor mais azulada e fria para misturar com o fundo
+        const baseColor = new Color("#88ccff");
+        meteors.forEach((data, i) => {
+            const instanceColor = baseColor.clone().multiplyScalar(data.brightness);
+            meshRef.current?.setColorAt(i, instanceColor);
+        });
+        meshRef.current.instanceColor!.needsUpdate = true;
+    }
+  }, [meteors]);
+
   useFrame(() => {
     if (!meshRef.current) return;
 
     meteors.forEach((data, i) => {
-      // Atualiza posição
       data.position.add(data.velocity);
 
-      // Se foi muito longe (saiu da esfera visível), reseta
-      if (data.position.length() > 450) {
+      if (data.position.length() > 600) {
         data.reset();
       }
 
-      // Atualiza a matriz da instância
       dummy.position.copy(data.position);
-      
-      // Orienta o meteoro na direção do movimento (lookAt)
-      // O meteoro "olha" para onde está indo
       dummy.lookAt(data.position.clone().add(data.velocity));
       
-      // Estica o meteoro baseado na sua velocidade para criar o efeito de "traço"
-      // X e Y são finos, Z é o comprimento (alinhado com a direção do movimento)
       const speed = data.velocity.length();
-      dummy.scale.set(1, 1, speed * 8); 
+      // Aumenta o comprimento (Z) e reduz espessura (X, Y)
+      dummy.scale.set(data.size, data.size, speed * 20); 
 
       dummy.updateMatrix();
       meshRef.current.setMatrixAt(i, dummy.matrix);
@@ -75,13 +87,12 @@ export const MeteorShower: React.FC = () => {
 
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
-      {/* Geometria base: um traço fino */}
-      <boxGeometry args={[0.4, 0.4, 1]} />
+      <boxGeometry args={[1, 1, 1]} />
       <meshBasicMaterial 
-        color="#aaddff" 
+        color="#ffffff" 
         transparent 
-        opacity={0.3} 
-        depthWrite={false} // Não bloqueia outros objetos transparentes
+        opacity={0.15} // Opacidade bem baixa para sutileza
+        depthWrite={false}
       />
     </instancedMesh>
   );

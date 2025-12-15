@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Mesh, Vector3, Color, AdditiveBlending } from 'three';
+import { Mesh, Vector3, Color, AdditiveBlending, CanvasTexture } from 'three';
 import { Html } from '@react-three/drei';
 import { PlanetData } from '../types';
 
@@ -14,6 +14,8 @@ interface PlanetProps {
 
 export const Planet: React.FC<PlanetProps> = ({ data, timeScale, isSelected, onSelect, paused }) => {
   const meshRef = useRef<Mesh>(null);
+  const cloudsRef = useRef<Mesh>(null);
+  
   // Random start position ensures planets aren't aligned in a straight line at start
   const orbitRef = useRef<number>(Math.random() * Math.PI * 2); 
   const [hovered, setHovered] = useState(false);
@@ -21,6 +23,38 @@ export const Planet: React.FC<PlanetProps> = ({ data, timeScale, isSelected, onS
   // Base constants to tune the visual speed of the simulation
   const BASE_ORBIT_SPEED = 0.05; 
   const BASE_SELF_ROTATION_SPEED = 0.5;
+
+  // Gerar textura de nuvens proceduralmente apenas para a Terra
+  const cloudTexture = useMemo(() => {
+    if (data.id !== 'earth') return null;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 256; // 2:1 aspect ratio para projeção esférica
+    const context = canvas.getContext('2d');
+    
+    if (context) {
+      // Fundo transparente
+      context.fillStyle = 'rgba(0,0,0,0)';
+      context.fillRect(0, 0, 512, 256);
+
+      // Desenhar "manchas" brancas aleatórias para simular nuvens
+      context.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      context.filter = 'blur(4px)'; // Suavizar as bordas
+
+      for (let i = 0; i < 150; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 256;
+        // Tamanhos variados de nuvens
+        const radius = Math.random() * 30 + 10;
+        
+        context.beginPath();
+        context.arc(x, y, radius, 0, Math.PI * 2);
+        context.fill();
+      }
+    }
+    return new CanvasTexture(canvas);
+  }, [data.id]);
 
   useFrame((state, delta) => {
     // If paused, we skip all movement updates
@@ -30,7 +64,6 @@ export const Planet: React.FC<PlanetProps> = ({ data, timeScale, isSelected, onS
     const timeStep = delta * timeScale;
 
     // Update Orbit Angle (Translation)
-    // We use data.speed (relative velocity) scaled by our base constant and time scale
     orbitRef.current += data.speed * BASE_ORBIT_SPEED * timeStep;
 
     if (meshRef.current) {
@@ -40,8 +73,13 @@ export const Planet: React.FC<PlanetProps> = ({ data, timeScale, isSelected, onS
       meshRef.current.position.set(x, 0, z);
       
       // Update Planet Rotation (Day/Night Cycle)
-      // Planets rotate on their axis while orbiting
       meshRef.current.rotation.y += BASE_SELF_ROTATION_SPEED * timeStep;
+
+      // Animação das nuvens (Terra)
+      if (cloudsRef.current) {
+        // Nuvens giram um pouco mais rápido que a superfície para criar paralaxe
+        cloudsRef.current.rotation.y += (BASE_SELF_ROTATION_SPEED * 1.1) * timeStep;
+      }
     }
   });
 
@@ -81,8 +119,21 @@ export const Planet: React.FC<PlanetProps> = ({ data, timeScale, isSelected, onS
               emissiveIntensity={isSelected || hovered ? 0.3 : 0}
             />
 
+            {/* Earth Clouds Layer */}
+            {data.id === 'earth' && cloudTexture && (
+              <mesh ref={cloudsRef} scale={[1.015, 1.015, 1.015]}>
+                <sphereGeometry args={[data.size, 64, 64]} />
+                <meshStandardMaterial 
+                  map={cloudTexture} 
+                  transparent 
+                  opacity={0.8} 
+                  side={2}
+                  depthWrite={false} // Evita bugs visuais de z-fighting
+                />
+              </mesh>
+            )}
+
             {/* Atmosphere Glow (Fake Atmospheric scattering) */}
-            {/* We render a slightly larger sphere with additive blending to create a soft halo */}
             <mesh scale={[1.2, 1.2, 1.2]}>
                <sphereGeometry args={[data.size, 32, 32]} />
                <meshBasicMaterial 
@@ -90,7 +141,7 @@ export const Planet: React.FC<PlanetProps> = ({ data, timeScale, isSelected, onS
                  transparent 
                  opacity={0.15} 
                  blending={AdditiveBlending} 
-                 side={2} // Render backface to add depth to the transparency
+                 side={2} 
                />
             </mesh>
             
