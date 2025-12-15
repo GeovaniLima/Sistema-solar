@@ -1,0 +1,5 @@
+{
+  "name": "CosmoView 3D",
+  "description": "Uma simulação interativa 3D do Sistema Solar com dados astronômicos gerados por IA.",
+  "requestFramePermissions": []
+}
