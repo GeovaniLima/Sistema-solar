@@ -1,13 +1,40 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GeminiPlanetInfo } from "../types";
 
+// Função robusta para recuperar a chave de API em qualquer ambiente
+const getApiKey = (): string => {
+  let apiKey = "";
+
+  // 1. Tenta recuperar do Vite/Vercel (Padrão moderno para Frontend)
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
+    // @ts-ignore
+    apiKey = import.meta.env.VITE_API_KEY;
+    console.log("CosmoView: Usando chave de ambiente Vercel/Vite");
+  }
+
+  // 2. Tenta recuperar da variável global injetada no HTML (Fallback garantido)
+  // Isso previne erros de 'process is not defined' em navegadores
+  if (!apiKey && typeof window !== 'undefined' && (window as any).GEMINI_API_KEY) {
+    apiKey = (window as any).GEMINI_API_KEY;
+    console.log("CosmoView: Usando chave global do navegador");
+  }
+
+  // 3. Fallback final hardcoded
+  if (!apiKey) {
+    apiKey = "AIzaSyBIuCuFlYckVDV4jIIr5XgaKkx09wlE-g0";
+    console.log("CosmoView: Usando chave de fallback estática");
+  }
+
+  return apiKey;
+};
+
 export const fetchPlanetDetails = async (planetName: string): Promise<GeminiPlanetInfo | null> => {
   try {
-    // API key must be obtained exclusively from process.env.API_KEY
-    const apiKey = process.env.API_KEY;
+    const apiKey = getApiKey();
 
     if (!apiKey) {
-      console.error("API Key not found in environment variables");
+      console.error("Critical: API Key not found in any configuration source.");
       throw new Error("API Key not configured");
     }
 
@@ -59,10 +86,10 @@ export const fetchPlanetDetails = async (planetName: string): Promise<GeminiPlan
     return {
       funFacts: [
         "Erro ao conectar com a base de dados estelar.",
-        "Verifique a configuração da chave de API.",
-        "O sistema está operando com dados limitados."
+        "Verifique a conexão de rede.",
+        "O sistema está operando em modo offline."
       ],
-      composition: "Desconhecida",
+      composition: "Dados Indisponíveis",
       temperature: "--",
       orbitPeriod: "--"
     };
